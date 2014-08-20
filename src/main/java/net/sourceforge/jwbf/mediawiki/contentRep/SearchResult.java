@@ -33,11 +33,11 @@ public class SearchResult {
   private final String title = "";
   private final String snippet = "";
 
-  public static final Function<CategoryItem, String> TO_TITLE_STRING_F =
-    new Function<CategoryItem, String>() {
+  public static final Function<SearchResult, String> TO_TITLE_STRING_F =
+    new Function<SearchResult, String>() {
     @Nullable
     @Override
-    public String apply(@Nullable CategoryItem input) {
+    public String apply(@Nullable SearchResult input) {
       return input.getTitle();
     }
   };
