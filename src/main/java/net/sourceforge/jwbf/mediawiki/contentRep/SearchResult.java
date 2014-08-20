@@ -22,11 +22,9 @@
 
 package net.sourceforge.jwbf.mediawiki.contentRep;
 
-// import things TODO
-
 import java.util.Objects;
-
-
+import javax.annotation.Nullable;
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 
 public class SearchResult {
@@ -35,18 +33,20 @@ public class SearchResult {
   private final String title = "";
   private final String snippet = "";
 
-// make this iterable? but titlequery implements Iterable<T>...
-
-
-
+  public static final Function<CategoryItem, String> TO_TITLE_STRING_F =
+    new Function<CategoryItem, String>() {
+    @Nullable
+    @Override
+    public String apply(@Nullable CategoryItem input) {
+      return input.getTitle();
+    }
+  };
 
   public SearchResult(String title, int namespace, String snippet) {
     this.title = Preconditions.checkNotNull(title);
     this.namespace = namespace;
     this.snippet = snippet;
   }
-
-
 
   @Override
   public String toString() {
@@ -69,7 +69,6 @@ public class SearchResult {
     return snippet;
   }
 
-
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof CategoryItem) {
@@ -86,7 +85,4 @@ public class SearchResult {
   public int hashCode() {
     return Objects.hash(title, snippet, namespace);
   }
-
-
-
 }
