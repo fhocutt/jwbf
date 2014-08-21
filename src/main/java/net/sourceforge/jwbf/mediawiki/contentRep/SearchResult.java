@@ -17,8 +17,6 @@
  *   
  */
 
-//cribbing from CategoryItem, replacing pageid with snippet
-
 
 package net.sourceforge.jwbf.mediawiki.contentRep;
 
@@ -29,9 +27,10 @@ import com.google.common.base.Preconditions;
 
 public class SearchResult {
 
-  private final int namespace = 0;
-  private final String title = "";
-  private final String snippet = "";
+  private final int namespace;
+  private final String title;
+  private final String snippet;
+  private final String timestamp;
 
   public static final Function<SearchResult, String> TO_TITLE_STRING_F =
     new Function<SearchResult, String>() {
@@ -42,10 +41,12 @@ public class SearchResult {
     }
   };
 
-  public SearchResult(String title, int namespace, String snippet) {
+  public SearchResult(String title, int namespace, String snippet, 
+      String timestamp) {
     this.title = Preconditions.checkNotNull(title);
     this.namespace = namespace;
     this.snippet = snippet;
+    this.timestamp = timestamp;
   }
 
   @Override
@@ -54,6 +55,7 @@ public class SearchResult {
         .add("title", title) //
         .add("namespace", namespace) //
         .add("snippet", snippet) //
+        .add("timestamp", timestamp)//
         .toString();
   }
 
@@ -65,17 +67,22 @@ public class SearchResult {
     return namespace;
   }
 
-  public int getSnippet() {
+  public String getSnippet() {
     return snippet;
+  }
+
+  public String getTimestamp() {
+    return timestamp;
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof CategoryItem) {
-      CategoryItem that = (CategoryItem) obj;
+    if (obj instanceof SearchResult) {
+      SearchResult that = (SearchResult) obj;
       return Objects.equals(that.getTitle(), this.getTitle()) && //
           Objects.equals(that.getSnippet(), this.getSnippet()) && //
-          Objects.equals(that.getNamespace(), this.getNamespace());
+          Objects.equals(that.getNamespace(), this.getNamespace()) && //
+          Objects.equals(that.getTimestamp(), this.getTimestamp());
     } else {
       return false;
     }
@@ -83,6 +90,6 @@ public class SearchResult {
 
   @Override
   public int hashCode() {
-    return Objects.hash(title, snippet, namespace);
+    return Objects.hash(title, snippet, namespace, timestamp);
   }
 }
