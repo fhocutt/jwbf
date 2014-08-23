@@ -19,8 +19,11 @@
 package net.sourceforge.jwbf.mediawiki.actions.queries;
 
 
-
-import net.sourceforge.jwbf.mediawiki.actions.util.RedirectFilter;
+import net.sourceforge.jwbf.mapper.JsonMapper;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
+import java.util.List;
 
 import net.sourceforge.jwbf.core.actions.Get;
 import net.sourceforge.jwbf.mediawiki.ApiRequestBuilder; 
@@ -50,9 +53,11 @@ public class Search extends TitleQuery<SearchResult> {
   private final String from;
 
   //when we start, it is the initial request
-  private boolean initial = true;
+  private boolean initialReq = true;
   private boolean hasMoreResults = true;
-  private String continueOffset = "0";
+  private String continueFrom = "0";
+  private String searchterm = "";
+
 
   // Constructor
   public Search(MediaWikiBot bot, String from, String prefix,
@@ -62,18 +67,46 @@ public class Search extends TitleQuery<SearchResult> {
     this.prefix = prefix;
     this.namespaces = namespaces;
     this.from = from;
+
+  } 
+
+/**
+* TODO.
+* figure out json parsing
+* figure out what I want to do with overloading generateRequest
+* figure out what I'm doing with storing search results
+* write/modify an integration test? 
+* figure out how to call it?
+*/
+
+  //generates the search request as a Get HttpAction
+
+  private HttpAction generateRequest(String searchterm, String continueFrom) {
+
+    Get searchRequest = new ApiRequestBuilder().action("query") //
+          .formatJson() //
+          .paramNewContinue(bot.getVersion()) //
+          .param("list", "search") //
+          .param("srsearch", searchterm) //
+          .param("srbackend", "CirrusSearch") // or LuceneSearch
+          .param("sroffset", continueFrom)
+          .buildGet();
+// http://www.mediawiki.org/w/api.php?action=query&list=search
+// &srsearch=wikipedia&srbackend=CirrusSearch&format=json&continue=-||
+    return searchRequest;
+
   }
 
 
 
-
-  // Three overridden abstract methods from TitleQuery
+// Three overridden abstract methods from TitleQuery
 
 
   // implementing abstract mewhod, TODO actually write this
   // Parsing results to find "continue" 
   @Override
   protected String parseHasMore(final String s) {
+    
     // parse json for "continue":{ "continue":"-||" }, does it have it?
     // hasMoreResults = the above answer
 
@@ -97,39 +130,66 @@ public class Search extends TitleQuery<SearchResult> {
   }
 
   //implementing abstract method, tells it whether there's a continue or not, 
-  //this should be refactored eventually
+  // generates a new Get request that starts from continueFrom.
+  // once this is called it is no longer the initial run.
   protected HttpAction prepareCollection() {
-    if (initial) {
-      initial = false;
-//      return generateFirstRequest();
-    } else {
-//      return generateContinueRequest(continueOffset);
-    }
-//just for now so that it compiles
-  RequestBuilder requestBuilder = new ApiRequestBuilder();
-  return requestBuilder.buildGet();
+    initialReq = false;
+    return generateRequest(searchterm, continueFrom);
   }
-
-
-
-/**
- * Actual useful code to be added, possibly to RequestGenerator?
-
-...
-Get searchRequest = new ApiRequestBuilder().action("query") //
-        .formatJson() //
-        .paramNewContinue(mediaWikiVersion) //
-        .param("list", "search") //
-        .param("srsearch", searchTerm) //
-        .param("srbackend", "CirrusSearch") // or LuceneSearch
-// http://www.mediawiki.org/w/api.php?action=query&list=search
-// &srsearch=wikipedia&srbackend=CirrusSearch&format=json&continue=-||
-*/
 
 }
 
+
+//experimenting with JSON mapping...
+/*
+
+  protected void responseMap(String response) {
+    JsonMapper mapper = new JsonMapper();
+    SearchData searchData = mapper.get(response, SearchData.class);
+    return;
+  }
+*/
+
+
+
+
+// copying JsonMapperTest's SiteInfoData class; not sure if this is the right track 
+// FIXME
+
+class SearchData {
+  private final String searchterm;
+
+  public SearchData(String searchterm) {
+    this.searchterm = searchterm;
+  }
+
+  @JsonCreator
+  private static SearchData newSearchData(Map<String, Object> data) {
+
+    Map<String, Object> query = data.get("query");
+    List<Object> search = query.get("search");
+
+    Map<String, Object> continuation = data.get("continue");
+    int continueFrom = continuation.get("sroffset");
+  }
+
+  String getSearchterm() {
+    return searchterm;
+  }
+}
 /**
-*JSON response format:
+Method from JsonMapperTest's SiteInfoData class:
+@JsonCreator
+private static SiteInfoData newSiteInfoData(Map<String, Object> data) {
+Map<String, Object> query = (Map<String, Object>) data.get("query");
+Map<String, String> general = (Map<String, String>) query.get("general");
+String mainpage = general.get("mainpage");
+return new SiteInfoData(mainpage);
+}
+String getMainpage() {
+return mainpage;
+/**
+*JSON response format.
 *{
 *    "continue": {
 *        "sroffset": 150,
@@ -156,4 +216,3 @@ Get searchRequest = new ApiRequestBuilder().action("query") //
 *}
 *
 */
-
